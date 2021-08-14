@@ -1,3 +1,9 @@
+# go
 .env
 .idea
-terraform/.terraform
+function.zip
+main
+
+# terraform
+**/.terraform
+**/*.tfstate

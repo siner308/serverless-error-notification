@@ -70,6 +70,7 @@ type Body struct {
 }
 
 func handler(ctx context.Context, body Body) (string, error) {
+	loadEnv(".env")
 	clients := GetClients(body.Types)
 	message := fmt.Sprintf("[%s] 문제가 발생했습니다", body.ServiceName)
 	for _, c := range clients {
@@ -79,6 +80,5 @@ func handler(ctx context.Context, body Body) (string, error) {
 }
 
 func main() {
-	loadEnv(".env")
 	lambda.Start(handler)
 }

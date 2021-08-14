@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "ap-northeast-2"
+  region = var.aws_region
 }
 
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "ttbkk-tfstate"
+  bucket = "error-helper-tfstate"
 
   versioning {
     enabled = true
@@ -11,7 +11,7 @@ resource "aws_s3_bucket" "tfstate" {
 }
 
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name = "terraform-lock"
+  name = "error-helper-tflock"
   hash_key = "LockID"
   billing_mode = "PAY_PER_REQUEST"
 
@@ -19,8 +19,4 @@ resource "aws_dynamodb_table" "terraform_state_lock" {
     name = "LockID"
     type = "S"
   }
-}
-
-module "vpc" {
-  source = "./vpc"
 }
