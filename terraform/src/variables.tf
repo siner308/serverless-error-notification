@@ -4,10 +4,3 @@ variable "aws_region" {
   type = string
   default = "ap-northeast-2"
 }
-
-variable "archived_function" {
-  description = "Archived Go Function"
-
-  type = string
-  default = "../../function.zip"
-}

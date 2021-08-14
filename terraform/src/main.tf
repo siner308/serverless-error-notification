@@ -33,13 +33,37 @@ resource "aws_s3_bucket" "lambda_bucket" {
   force_destroy = true
 }
 
+data "local_file" "dotenv" {
+  filename = "${path.root}/../../.env"
+}
+
+data "local_file" "main" {
+  filename = "${path.module}/../../main"
+}
+
+
+data "archive_file" "zip" {
+  type = "zip"
+  output_path = "main.zip"
+
+  source {
+    content = data.local_file.main.content
+    filename = "main"
+  }
+
+  source {
+    content = data.local_file.dotenv.content
+    filename = ".env"
+  }
+}
+
 resource "aws_s3_bucket_object" "lambda" {
   bucket = aws_s3_bucket.lambda_bucket.id
 
-  key = "function.zip"
-  source = var.archived_function
+  key = "main.zip"
+  source = data.archive_file.zip.output_path
 
-  etag = filemd5(var.archived_function)
+  etag = filemd5(data.archive_file.zip.output_path)
 }
 
 resource "aws_lambda_function" "error-helper" {
@@ -49,9 +73,10 @@ resource "aws_lambda_function" "error-helper" {
   s3_key = aws_s3_bucket_object.lambda.key
 
   runtime = "go1.x"
-  handler = "main.handler"
+  handler = "main"
+  memory_size = 128
 
-  source_code_hash = aws_s3_bucket_object.lambda.etag
+  source_code_hash = data.archive_file.zip.output_base64sha256
 
   role = aws_iam_role.lambda_exec.arn
 }

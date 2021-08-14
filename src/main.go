@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 func loadEnv(filepath string) {
@@ -24,7 +26,7 @@ type NotificationClient interface {
 }
 
 const (
-	SLACK = "slack"
+	SLACK    = "slack"
 	TELEGRAM = "telegram"
 )
 
@@ -33,22 +35,26 @@ type SlackRequest struct {
 }
 
 type Slack struct{}
+
 func (c *Slack) Send(message string) {
-	req := SlackRequest{message}
-	reqBytes, _ := json.Marshal(req)
-	buff := bytes.NewBuffer(reqBytes)
-	_, err := http.Post(os.Getenv("SLACK_WEBHOOK_URL"), "application/json", buff)
+	var jsonStr = []byte(fmt.Sprintf(`{"text": "%s"}`, message))
+	fmt.Println(os.Getenv("SLACK_WEBHOOK_URL"))
+	res, err := http.Post(os.Getenv("SLACK_WEBHOOK_URL"), "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println("에러 메시지가 전송되었습니다:" + message)
+		if res.StatusCode != 200 {
+			fmt.Println(fmt.Sprintf("[%s] 에러 메시지 전송에 실패했습니다: %s", strconv.Itoa(res.StatusCode), err))
+		} else {
+			fmt.Println(fmt.Sprintf("[%s] 에러 메시지가 전송되었습니다: %s", strconv.Itoa(res.StatusCode), message))
+		}
 	}
 }
 
-
 func getNotificationClient(notificationType string) NotificationClient {
 	switch notificationType {
-	case SLACK: return new(Slack)
+	case SLACK:
+		return new(Slack)
 	}
 	return nil
 }
@@ -69,16 +75,36 @@ type Body struct {
 	Types       []string `json:"types"`
 }
 
-func handler(ctx context.Context, body Body) (string, error) {
+func handler(ctx context.Context, request events.APIGatewayProxyRequest) (string, error) {
+	fmt.Println("start!")
+	fmt.Printf("start!!")
 	loadEnv(".env")
+	body := Body{}
+	err := json.Unmarshal([]byte(string(request.Body)), &body)
+	if err != nil {
+		return "json parse error", err
+	}
 	clients := GetClients(body.Types)
 	message := fmt.Sprintf("[%s] 문제가 발생했습니다", body.ServiceName)
 	for _, c := range clients {
 		c.Send(message)
 	}
-	return "success", nil
+	return message, nil
 }
 
+//func test() (string, error) {
+//	loadEnv(".env")
+//	types := make([]string, 0)
+//	types = append(types, "slack")
+//	clients := GetClients(types)
+//	message := fmt.Sprintf("[%s] 문제가 발생했습니다", "test")
+//	for _, c := range clients {
+//		c.Send(message)
+//	}
+//	return "success", nil
+//}
+
 func main() {
+	//test()
 	lambda.Start(handler)
 }

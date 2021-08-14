@@ -1,1 +1,1 @@
-{"errorMessage":"fork/exec /var/task/main.handler: no such file or directory","errorType":"PathError"}
+{"errorMessage":"fork/exec /var/task/main: exec format error","errorType":"PathError"}
