@@ -22,7 +22,7 @@ func loadEnv(filepath string) {
 }
 
 type NotificationClient interface {
-	Send(message string)
+	Send(message string, description string)
 }
 
 const (
@@ -36,8 +36,8 @@ type SlackRequest struct {
 
 type Slack struct{}
 
-func (c *Slack) Send(message string) {
-	var jsonStr = []byte(fmt.Sprintf(`{"text": "%s"}`, message))
+func (c *Slack) Send(message string, description string) {
+	var jsonStr = []byte(fmt.Sprintf(`{"text": "%s\n>%s"}`, message, description))
 	fmt.Println(os.Getenv("SLACK_WEBHOOK_URL"))
 	res, err := http.Post(os.Getenv("SLACK_WEBHOOK_URL"), "application/json", bytes.NewBuffer(jsonStr))
 	if err != nil {
@@ -73,6 +73,7 @@ func GetClients(types []string) []NotificationClient {
 type Body struct {
 	ServiceName string   `json:"serviceName"`
 	Types       []string `json:"types"`
+	Description string   `json:"description"`
 }
 
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (string, error) {
@@ -86,8 +87,9 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (string
 	}
 	clients := GetClients(body.Types)
 	message := fmt.Sprintf("[%s] 문제가 발생했습니다", body.ServiceName)
+	description := fmt.Sprintf("%s", body.Description)
 	for _, c := range clients {
-		c.Send(message)
+		c.Send(message, description)
 	}
 	return message, nil
 }
