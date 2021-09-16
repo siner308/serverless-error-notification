@@ -4,4 +4,4 @@
 GOOS=linux go build src/main.go
 
 # build lambda package
-zip main.zip main
+zip main.zip main .env
